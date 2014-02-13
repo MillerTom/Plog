@@ -44,6 +44,31 @@
                     </tbody>
                 </table>
             </div>
+            <div class="col-lg-4">
+                <h3 class="col-lg-3">Groups</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Group Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for group in groups %}
+                        <tr>
+                            <td>
+                                {{ group.name }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <form class="form-inline" method="post" action="{{ 'admin'|route_url }}">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="group_name" name="group_name" placeholder="Enter a name">
+                        <button type="submit" class="btn btn-primary">Add Group</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 {% endblock %}

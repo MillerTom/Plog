@@ -8,6 +8,7 @@ from plog.models import (
     DBSession,
     Post,
     User,
+    Group,
 )
 
 from pyramid.security import (
@@ -123,12 +124,16 @@ def login(request):
 @view_config(route_name='add_user', renderer='add_user.jinja2', permission='edit')
 def add_user(request):
     token = request.session.get_csrf_token()
+    groups = DBSession.query(Group).all()
     if request.method == 'POST':
         if token == request.params['csrf_token']:
             username = request.params['username']
             password = request.params['password']
             email = request.params['email']
+            group_name = request.params['group_name']
             user = User(username=username, password=password, email=email)
+            group = DBSession.query(Group).filter_by(name=group_name).one()
+            user.group.append(group)
             DBSession.add(user)
             return HTTPFound(location=request.route_url('admin'))
         else:
@@ -136,7 +141,8 @@ def add_user(request):
     else:
         return {'project': 'Plog',
                 'logged_in': authenticated_userid(request),
-                'token': token}
+                'token': token,
+                'groups': groups}
 
 
 @view_config(route_name='profile', renderer='profile.jinja2', permission='edit')
@@ -157,9 +163,16 @@ def logout(request):
 
 @view_config(route_name='admin', renderer='admin.jinja2', permission='edit')
 def admin(request):
+    if request.method == 'POST':
+        group_name = request.params['group_name']
+        group = Group(group_name)
+        DBSession.add(group)
+
     posts = DBSession.query(Post).all()
     users = DBSession.query(User).all()
+    groups = DBSession.query(Group).all()
     return {'project': 'Plog',
             'logged_in': authenticated_userid(request),
             'posts': posts,
-            'users': users}
+            'users': users,
+            'groups': groups}
