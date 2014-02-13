@@ -3,7 +3,7 @@
     <div class="container">
         <div class="row">
             <div class="col-md-offset-4 col-lg-4">
-                <form method="post" action="/edit/{{ post.slug }}">
+                <form method="post" action="{{ 'edit_post'|route_url(slug=post.slug) }}">
                     <label for="title" class="form-group">Title</label>
                     <input type="text" class="form-control" id="title" name="title" value="{{ post.title }}">
                     <br>

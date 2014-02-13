@@ -145,6 +145,33 @@ def add_user(request):
                 'groups': groups}
 
 
+@view_config(route_name='edit_user', renderer='edit_user.jinja2', permission='edit')
+def edit_user(request):
+    token = request.session.get_csrf_token()
+    username = request.matchdict['username']
+    user = DBSession.query(User).filter_by(username=username).one()
+    groups = group = DBSession.query(Group).all()
+    if request.method == 'POST':
+        if token == request.params['csrf_token']:
+            user.username = request.params['username']
+            #user.password = request.params['password']
+            user.email = request.params['email']
+            group_name = request.params['group_name']
+            group = DBSession.query(Group).filter_by(name=group_name).one()
+            user.group[:] = []
+            user.group.append(group)
+            DBSession.add(user)
+            return HTTPFound(location=request.route_url('admin'))
+    else:
+        return {'project': 'Plog',
+                'user': user,
+                'groups': groups,
+                'logged_in': authenticated_userid(request),
+                'token': token}
+
+
+
+
 @view_config(route_name='profile', renderer='profile.jinja2', permission='edit')
 def profile(request):
     u_name = request.matchdict['username']

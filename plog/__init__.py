@@ -34,6 +34,7 @@ def main(global_config, **settings):
     config.add_route('admin', '/admin')
     config.add_route('add_post', '/add')
     config.add_route('add_user', '/new-user')
+    config.add_route('edit_user', '/user/{username}')
     config.add_route('profile', '/profile/{username}')
     config.add_route('edit_post', '/edit/{slug}')
     config.add_route('delete_post', '/delete/{slug}')
