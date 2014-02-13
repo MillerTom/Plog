@@ -37,7 +37,6 @@ def main(argv=sys.argv):
     with transaction.manager:
         post = Post(title='Hello World', body='First post of Plog project.')
         DBSession.add(post)
-        group = Group(name='admins')
-        DBSession.add(group)
         user = User(username='admin', password='admin', email='admin@example.com')
+        user.group.append(Group('admins'))
         DBSession.add(user)

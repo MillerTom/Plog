@@ -14,7 +14,7 @@ requires = [
     'pyramid_debugtoolbar',
     'pyramid_jinja2',
     'zope.sqlalchemy',
-    'uwsgi', 'passlib', 'slugify',
+    'uwsgi', 'passlib', 'python-slugify',
 ]
 
 setup(name='Plog',
