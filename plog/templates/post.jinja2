@@ -1,0 +1,14 @@
+{% extends 'base.jinja2' %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h3>{{ post.title }}</h3>
+                <hr>
+                <p>
+                    {{ post.body }}
+                </p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

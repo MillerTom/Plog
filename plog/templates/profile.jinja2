@@ -1,0 +1,13 @@
+{% extends 'base.jinja2' %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                {{ user.username }}
+                {% for g in group %}
+                    {{ g.name }}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
