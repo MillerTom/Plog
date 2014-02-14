@@ -9,6 +9,7 @@ from plog.models import (
     Post,
     User,
     Group,
+    Permission,
 )
 
 from pyramid.security import (
@@ -104,6 +105,7 @@ def login(request):
         came_from=came_from,
         login=login_name,
         password=password,
+        logged_in=authenticated_userid(request),
     )
     if 'form.submitted' in request.params:
         login_name = request.params['login']
@@ -145,6 +147,30 @@ def add_user(request):
                 'groups': groups}
 
 
+@view_config(route_name='add_group', renderer='add_group.jinja2', permission='edit')
+def add_group(request):
+    token = request.session.get_csrf_token()
+    permissions = DBSession.query(Permission).all()
+    if request.method == 'POST':
+        if token == request.params['csrf_token']:
+            group_name = request.params['group_name']
+            permission_name = request.params['permission_name']
+            permission = DBSession.query(Permission).filter_by(name=permission_name).one()
+            group = Group(group_name, permission)
+            DBSession.add(group)
+            return HTTPFound(location=request.route_url('admin'))
+        else:
+            raise ValueError('CSRF token did not match!')
+    else:
+        return {
+            'project': 'Plog',
+            'logged_in': authenticated_userid(request),
+            'token': token,
+            'permissions': permissions
+        }
+
+
+
 @view_config(route_name='edit_user', renderer='edit_user.jinja2', permission='edit')
 def edit_user(request):
     token = request.session.get_csrf_token()
@@ -172,6 +198,23 @@ def edit_user(request):
 
 
 
+@view_config(route_name='del_user', permission='edit')
+def del_user(request):
+    username = request.matchdict['username']
+    user = DBSession.query(User).filter_by(username=username).one()
+    DBSession.delete(user)
+    return HTTPFound(location=request.route_url('admin'))
+
+
+@view_config(route_name='del_group', permission='edit')
+def del_group(request):
+    group_name = request.matchdict['group_name']
+    group = DBSession.query(Group).filter_by(name=group_name).one()
+    DBSession.delete(group)
+    return HTTPFound(location=request.route_url('admin'))
+
+
+
 @view_config(route_name='profile', renderer='profile.jinja2', permission='edit')
 def profile(request):
     u_name = request.matchdict['username']
@@ -190,11 +233,6 @@ def logout(request):
 
 @view_config(route_name='admin', renderer='admin.jinja2', permission='edit')
 def admin(request):
-    if request.method == 'POST':
-        group_name = request.params['group_name']
-        group = Group(group_name)
-        DBSession.add(group)
-
     posts = DBSession.query(Post).all()
     users = DBSession.query(User).all()
     groups = DBSession.query(Group).all()

@@ -14,6 +14,7 @@ from plog.models import (
     Post,
     User,
     Group,
+    Permission,
     Base,
 )
 
@@ -38,5 +39,8 @@ def main(argv=sys.argv):
         post = Post(title='Hello World', body='First post of Plog project.')
         DBSession.add(post)
         user = User(username='admin', password='admin', email='admin@example.com')
-        user.group.append(Group('admins'))
+        permission = Permission('edit')
+        permission2 = Permission('view')
+        user.group.append(Group('admins', permission=permission))
         DBSession.add(user)
+        DBSession.add(permission2)

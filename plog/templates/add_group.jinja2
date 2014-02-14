@@ -1,0 +1,23 @@
+{% extends 'base.jinja2' %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-offset-4 col-lg-4">
+                <form method="post" action="{{ 'add_group'|route_url }}">
+                    <input type="hidden" name="csrf_token" value="{{ token }}"/>
+                    <label for="group_name" class="form-group">Group Name:</label>
+                    <input type="text" class="form-control" id="group_name" name="group_name"/>
+                    <br>
+                    <label for="permission_name" class="form-group">Permissions:</label>
+                    <select class="form-control" id="permission_name" name="permission_name">
+                    {% for p in permissions %}
+                        <option>{{ p.name }}</option>
+                    {% endfor %}
+                    </select>
+                    <hr>
+                    <input type="submit" class="btn btn-success" value="Add Group"/>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

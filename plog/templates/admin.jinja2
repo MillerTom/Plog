@@ -4,11 +4,12 @@
         <div class="row">
             <div class="col-lg-4">
             <h3 class="col-lg-3">Posts</h3>
-            <a href="{{ 'add_post'|route_url }}" class="btn btn-success pull-right" style="margin-top: 14px">Add New Post</a>
+            <a href="{{ 'add_post'|route_url }}" class="btn btn-default pull-right" style="margin-top: 14px">Add New Post</a>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Title</th>
+                            <th class="pull-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -16,6 +17,8 @@
                         <tr>
                             <td>
                                 <a href="/{{ post.slug }}">{{ post.title }}</a>
+                            </td>
+                            <td>
                                 <a class="btn btn-danger btn-sm pull-right" href="{{ 'delete_post'|route_url(slug=post.slug) }}">Delete</a>
                                 <a class="btn btn-primary btn-sm pull-right" href="{{ 'edit_post'|route_url(slug=post.slug) }}" style="margin-right: 3px;">Edit</a>
                             </td>
@@ -26,12 +29,13 @@
             </div>
             <div class="col-lg-4">
                 <h3 class="col-lg-3">Users</h3>
-                <a href="{{ 'add_user'|route_url }}" class="btn btn-primary pull-right" style="margin-top: 14px">New User</a>
+                <a href="{{ 'add_user'|route_url }}" class="btn btn-default pull-right" style="margin-top: 14px">New User</a>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Username</th>
                             <th>Group</th>
+                            <th class="pull-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -46,6 +50,7 @@
                                 {% endfor %}
                             </td>
                             <td>
+                                <a class="btn btn-danger btn-sm pull-right" href="{{ 'del_user'|route_url(username=user.username) }}">Delete</a>
                                 <a class="btn btn-primary btn-sm pull-right" href="{{ 'edit_user'|route_url(username=user.username) }}" style="margin-right: 3px;">Edit</a>
                             </td>
                         </tr>
@@ -55,10 +60,13 @@
             </div>
             <div class="col-lg-4">
                 <h3 class="col-lg-3">Groups</h3>
+                <a href="{{ 'add_group'|route_url }}" class="btn btn-default pull-right" style="margin-top: 14px">Add Group</a>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Group Name</th>
+                            <th>Permission</th>
+                            <th class="pull-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,16 +75,16 @@
                             <td>
                                 {{ group.name }}
                             </td>
+                            <td>
+                                {{ group.permission.name }}
+                            </td>
+                            <td>
+                                <a class="btn btn-danger btn-sm pull-right" href="{{ 'del_group'|route_url(group_name=group.name) }}">Delete</a>
+                            </td>
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                <form class="form-inline" method="post" action="{{ 'admin'|route_url }}">
-                    <div class="form-group">
-                        <input type="text" class="form-control" id="group_name" name="group_name" placeholder="Enter a name">
-                        <button type="submit" class="btn btn-primary">Add Group</button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>

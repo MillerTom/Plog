@@ -37,9 +37,9 @@ class RootFactory(object):
 class Post(Base):
     __tablename__ = 'posts'
     id = Column(Integer, primary_key=True)
-    title = Column(Text)
-    slug = Column(Text)
-    body = Column(Text)
+    title = Column(Text, nullable=False, unique=True)
+    slug = Column(Text, nullable=False, unique=True)
+    body = Column(Text, nullable=False)
 
     def __init__(self, title, body):
         self.title = title
@@ -58,7 +58,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(Text, unique=True, nullable=False)
     password = Column(Text, nullable=False)
-    email = Column(Text)
+    email = Column(Text, nullable=False, unique=True)
     group = relationship("Group", secondary=association_table, backref="parents")
 
     def __init__(self, username, password, email):
@@ -71,7 +71,18 @@ class Group(Base):
     __tablename__ = 'groups'
     id = Column(Integer, primary_key=True)
     name = Column(Text, unique=True, nullable=False)
-    description = Column(Text)
+    permission_id = Column(Integer, ForeignKey('permissions.id'))
+    permission = relationship('Permission')
+
+    def __init__(self, name, permission):
+        self.name = name
+        self.permission = permission
+
+
+class Permission(Base):
+    __tablename__ = 'permissions'
+    id = Column(Integer, primary_key=True)
+    name = Column(Text, nullable=False, unique=True)
 
     def __init__(self, name):
         self.name = name
