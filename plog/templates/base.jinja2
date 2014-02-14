@@ -28,7 +28,6 @@
             <ul class="nav navbar-nav">
                 <li><a href="/">Home</a> </li>
                 {% if logged_in %}
-                <li class="pull-right"><a href="#"> Welcome back {{ logged_in }}</a></li>
                 <li class="pull-right"><a href="{{ 'admin'|route_url }}" >Admin</a> </li>
                 <li><a href="{{ 'logout'|route_url }}">Logout</a> </li>
                 {% else %}
