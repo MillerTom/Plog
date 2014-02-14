@@ -174,6 +174,29 @@ class DeletePostTests(unittest.TestCase):
         self.assertEqual(response.location, 'http://example.com/admin')
 
 
+class UserModelTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+
+    def tearDown(self):
+        self.session.remove()
+
+    @staticmethod
+    def _get_target_class():
+        from .models import User
+        return User
+
+    def _makeOne(self, username='testuser', password='password', email='test@example.com'):
+        return self._get_target_class()(username, password, email)
+
+    def test_constructor(self):
+        import passlib.hash
+        instance = self._makeOne()
+        self.assertEqual(instance.username, 'testuser')
+        self.assertTrue(passlib.hash.sha256_crypt.verify('password', instance.password))
+        self.assertEqual(instance.email, 'test@example.com')
+
+
 class AddUserTests(unittest.TestCase):
     def setUp(self):
         self.session = _init_testing_db()
@@ -187,3 +210,49 @@ class AddUserTests(unittest.TestCase):
     def _call_fut(request):
         from .views import add_user
         return add_user(request)
+
+    def test_it_notsubmitted(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        info = self._call_fut(request)
+        self.assertEqual(info['project'], 'Plog')
+
+    def test_it_submitted(self):
+        from .models import Group, Permission
+        _register_routes(self.config)
+        permission = Permission('view')
+        self.session.add(permission)
+        group = Group('users', permission)
+        self.session.add(group)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.params['csrf_token'] = request.session.get_csrf_token()
+        request.params['username'] = 'testuser'
+        request.params['password'] = 'password'
+        request.params['email'] = 'test@example.com'
+        request.params['group_name'] = 'users'
+        response = self._call_fut(request)
+        self.assertEqual(response.location, 'http://example.com/admin')
+
+
+class GroupModelTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+
+    def tearDown(self):
+        self.session.remove()
+
+    @staticmethod
+    def _get_target_class():
+        from .models import Group
+        return Group
+
+    def _makeOne(self, name='users',):
+        from .models import Permission
+        permission = Permission('users')
+        return self._get_target_class()(name, permission=permission)
+
+    def test_constructor(self):
+        instance = self._makeOne()
+        self.assertEqual(instance.name, 'users')
+        self.assertEqual(instance.permission.name, 'users')
