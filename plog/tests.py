@@ -235,6 +235,56 @@ class AddUserTests(unittest.TestCase):
         self.assertEqual(response.location, 'http://example.com/admin')
 
 
+class EditUserTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import edit_user
+        return edit_user(request)
+
+    def test_it_notsubmitted(self):
+        from .models import User
+        _register_routes(self.config)
+        user = User('testuser', 'password', 'test@example.com')
+        self.session.add(user)
+        request = testing.DummyRequest()
+        request.matchdict['username'] = 'testuser'
+        response = self._call_fut(request)
+        self.assertEqual(response['user'], user)
+
+
+class DeleteUserTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import del_user
+        return del_user(request)
+
+    def test_it(self):
+        from .models import User
+        _register_routes(self.config)
+        user = User('testuser', 'password', 'testuser@example.com')
+        self.session.add(user)
+        request = testing.DummyRequest()
+        request.matchdict['username'] = user.username
+        response = self._call_fut(request)
+        self.assertEqual(response.location, 'http://example.com/admin')
+
+
 class GroupModelTests(unittest.TestCase):
     def setUp(self):
         self.session = _init_testing_db()
