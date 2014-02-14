@@ -228,7 +228,7 @@ def profile(request):
 @view_config(route_name='logout')
 def logout(request):
     headers = forget(request)
-    return HTTPFound(location=request.route_url('home'), headers=headers)
+    return HTTPFound(location=request.route_url('admin'), headers=headers)
 
 
 @view_config(route_name='admin', renderer='admin.jinja2', permission='edit')
