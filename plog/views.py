@@ -170,13 +170,12 @@ def add_group(request):
         }
 
 
-
 @view_config(route_name='edit_user', renderer='edit_user.jinja2', permission='edit')
 def edit_user(request):
     token = request.session.get_csrf_token()
     username = request.matchdict['username']
     user = DBSession.query(User).filter_by(username=username).one()
-    groups = group = DBSession.query(Group).all()
+    groups = DBSession.query(Group).all()
     if request.method == 'POST':
         if token == request.params['csrf_token']:
             user.username = request.params['username']
@@ -196,8 +195,6 @@ def edit_user(request):
                 'token': token}
 
 
-
-
 @view_config(route_name='del_user', permission='edit')
 def del_user(request):
     username = request.matchdict['username']
@@ -212,7 +209,6 @@ def del_group(request):
     group = DBSession.query(Group).filter_by(name=group_name).one()
     DBSession.delete(group)
     return HTTPFound(location=request.route_url('admin'))
-
 
 
 @view_config(route_name='profile', renderer='profile.jinja2', permission='edit')
