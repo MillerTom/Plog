@@ -1,6 +1,6 @@
 from pyramid.response import Response
 from pyramid.view import view_config, forbidden_view_config
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 
 from sqlalchemy.exc import DBAPIError
 
@@ -57,7 +57,7 @@ def add_post(request):
             DBSession.add(post)
             return HTTPFound(location=request.route_url('post', slug=post.slug))
         else:
-            raise ValueError('CSRF token did not match!')
+            return HTTPForbidden()
     else:
         return {'project': 'Plog',
                 'token': token,
@@ -139,7 +139,7 @@ def add_user(request):
             DBSession.add(user)
             return HTTPFound(location=request.route_url('admin'))
         else:
-            raise ValueError('CSRF token did not match!')
+            return HTTPForbidden()
     else:
         return {'project': 'Plog',
                 'logged_in': authenticated_userid(request),
@@ -160,7 +160,7 @@ def add_group(request):
             DBSession.add(group)
             return HTTPFound(location=request.route_url('admin'))
         else:
-            raise ValueError('CSRF token did not match!')
+            return HTTPForbidden()
     else:
         return {
             'project': 'Plog',
@@ -187,6 +187,8 @@ def edit_user(request):
             user.group.append(group)
             DBSession.add(user)
             return HTTPFound(location=request.route_url('admin'))
+        else:
+            return HTTPForbidden()
     else:
         return {'project': 'Plog',
                 'user': user,

@@ -9,14 +9,24 @@ def _init_testing_db():
     from .models import (
         DBSession,
         Post,
+        Permission,
+        Group,
+        User,
         Base
     )
     engine = create_engine('sqlite://')
     Base.metadata.create_all(engine)
     DBSession.configure(bind=engine)
     with transaction.manager:
-        model = Post('Test Post', 'This is the test post')
-        DBSession.add(model)
+        post = Post('Test Post', 'This is the test post')
+        DBSession.add(post)
+        permission = Permission('test_permission')
+        DBSession.add(permission)
+        group = Group('A group', permission)
+        DBSession.add(group)
+        user = User('test_user', 'password', 'test@example.com')
+        user.group.append(group)
+        DBSession.add(user)
     return DBSession
 
 
@@ -61,9 +71,11 @@ class PostModelTests(unittest.TestCase):
 
 class ViewPostTests(unittest.TestCase):
     def setUp(self):
+        self.session = _init_testing_db()
         self.config = testing.setUp()
 
     def tearDown(self):
+        self.session.remove()
         testing.tearDown()
 
     @staticmethod
@@ -110,6 +122,14 @@ class AddPostTests(unittest.TestCase):
         response = self._call_fut(request)
         self.assertEqual(response.location, 'http://example.com/post/another-post')
 
+    def test_it_with_wrong_token(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.params['csrf_token'] = 'wrong token'
+        response = self._call_fut(request)
+        self.assertEqual(response.status, '403 Forbidden')
+
 
 class EditPostTests(unittest.TestCase):
     def setUp(self):
@@ -126,23 +146,17 @@ class EditPostTests(unittest.TestCase):
         return edit_post(request)
 
     def test_it_notsubmitted(self):
-        from .models import Post
         _register_routes(self.config)
         request = testing.DummyRequest()
-        request.matchdict['slug'] = 'abc'
-        post = Post('abc', 'hello')
-        self.session.add(post)
+        request.matchdict['slug'] = 'test-post'
         info = self._call_fut(request)
-        self.assertEqual(info['post'], post)
+        self.assertEqual(info['post'].title, 'Test Post')
 
     def test_it_submitted(self):
-        from .models import Post
         _register_routes(self.config)
-        post = Post('Some Title', 'Some content')
-        self.session.add(post)
         request = testing.DummyRequest()
         request.method = 'POST'
-        request.matchdict['slug'] = post.slug
+        request.matchdict['slug'] = 'test-post'
         request.params['title'] = 'New Title'
         request.params['body'] = 'New body'
         response = self._call_fut(request)
@@ -164,12 +178,9 @@ class DeletePostTests(unittest.TestCase):
         return delete_post(request)
 
     def test_it(self):
-        from .models import Post
         _register_routes(self.config)
-        post = Post('Some Title', 'Some content')
-        self.session.add(post)
         request = testing.DummyRequest()
-        request.matchdict['slug'] = post.slug
+        request.matchdict['slug'] = 'test-post'
         response = self._call_fut(request)
         self.assertEqual(response.location, 'http://example.com/admin')
 
@@ -186,7 +197,7 @@ class UserModelTests(unittest.TestCase):
         from .models import User
         return User
 
-    def _makeOne(self, username='testuser', password='password', email='test@example.com'):
+    def _makeOne(self, username='testuser', password='password', email='testuser@example.com'):
         return self._get_target_class()(username, password, email)
 
     def test_constructor(self):
@@ -194,7 +205,7 @@ class UserModelTests(unittest.TestCase):
         instance = self._makeOne()
         self.assertEqual(instance.username, 'testuser')
         self.assertTrue(passlib.hash.sha256_crypt.verify('password', instance.password))
-        self.assertEqual(instance.email, 'test@example.com')
+        self.assertEqual(instance.email, 'testuser@example.com')
 
 
 class AddUserTests(unittest.TestCase):
@@ -218,21 +229,24 @@ class AddUserTests(unittest.TestCase):
         self.assertEqual(info['project'], 'Plog')
 
     def test_it_submitted(self):
-        from .models import Group, Permission
         _register_routes(self.config)
-        permission = Permission('view')
-        self.session.add(permission)
-        group = Group('users', permission)
-        self.session.add(group)
         request = testing.DummyRequest()
         request.method = 'POST'
         request.params['csrf_token'] = request.session.get_csrf_token()
         request.params['username'] = 'testuser'
         request.params['password'] = 'password'
         request.params['email'] = 'test@example.com'
-        request.params['group_name'] = 'users'
+        request.params['group_name'] = 'A group'
         response = self._call_fut(request)
         self.assertEqual(response.location, 'http://example.com/admin')
+
+    def test_it_with_wrong_token(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.params['csrf_token'] = 'wrong token'
+        response = self._call_fut(request)
+        self.assertEqual(response.status, '403 Forbidden')
 
 
 class EditUserTests(unittest.TestCase):
@@ -250,14 +264,32 @@ class EditUserTests(unittest.TestCase):
         return edit_user(request)
 
     def test_it_notsubmitted(self):
-        from .models import User
         _register_routes(self.config)
-        user = User('testuser', 'password', 'test@example.com')
-        self.session.add(user)
         request = testing.DummyRequest()
-        request.matchdict['username'] = 'testuser'
+        request.matchdict['username'] = 'test_user'
         response = self._call_fut(request)
-        self.assertEqual(response['user'], user)
+        self.assertEqual(response['user'].email, 'test@example.com')
+
+    def test_it_submitted(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.params['csrf_token'] = request.session.get_csrf_token()
+        request.params['username'] = 'new_username'
+        request.params['email'] = 'new_mail@example.com'
+        request.params['group_name'] = 'A group'
+        request.matchdict['username'] = 'test_user'
+        response = self._call_fut(request)
+        self.assertEqual(response.location, 'http://example.com/admin')
+
+    def test_it_with_wrong_token(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.matchdict['username'] = 'test_user'
+        request.params['csrf_token'] = 'wrong token'
+        response = self._call_fut(request)
+        self.assertEqual(response.status, '403 Forbidden')
 
 
 class DeleteUserTests(unittest.TestCase):
@@ -275,12 +307,9 @@ class DeleteUserTests(unittest.TestCase):
         return del_user(request)
 
     def test_it(self):
-        from .models import User
         _register_routes(self.config)
-        user = User('testuser', 'password', 'testuser@example.com')
-        self.session.add(user)
         request = testing.DummyRequest()
-        request.matchdict['username'] = user.username
+        request.matchdict['username'] = 'test_user'
         response = self._call_fut(request)
         self.assertEqual(response.location, 'http://example.com/admin')
 
@@ -306,3 +335,148 @@ class GroupModelTests(unittest.TestCase):
         instance = self._makeOne()
         self.assertEqual(instance.name, 'users')
         self.assertEqual(instance.permission.name, 'users')
+
+
+class AddGroupTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import add_group
+        return add_group(request)
+
+    def test_it_notsubmitted(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        info = self._call_fut(request)
+        self.assertEqual(info['project'], 'Plog')
+
+    def test_it_submitted(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.params['csrf_token'] = request.session.get_csrf_token()
+        request.params['group_name'] = 'Test Group'
+        request.params['permission_name'] = 'test_permission'
+        response = self._call_fut(request)
+        self.assertEqual(response.location, 'http://example.com/admin')
+
+    def test_it_with_wrong_token(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.method = 'POST'
+        request.params['csrf_token'] = 'wrong token'
+        response = self._call_fut(request)
+        self.assertEqual(response.status, '403 Forbidden')
+
+
+class DeleteGroupTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import del_group
+        return del_group(request)
+
+    def test_it(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        request.matchdict['group_name'] = 'A group'
+        response = self._call_fut(request)
+        self.assertEqual(response.location, 'http://example.com/admin')
+
+
+class HomeViewTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import home_view
+        return home_view(request)
+
+    def test_it(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        response = self._call_fut(request)
+        self.assertEqual(len(response['posts']), 1)
+
+
+class ProfileViewTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import profile
+        return profile(request)
+
+    def test_it(self):
+        request = testing.DummyRequest()
+        request.matchdict['username'] = 'test_user'
+        response = self._call_fut(request)
+        self.assertEqual(response['user'].username, 'test_user')
+
+
+class LogoutViewTests(unittest.TestCase):
+    def setUp(self):
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import logout
+        return logout(request)
+
+    def test_it(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        response = self._call_fut(request)
+        self.assertEqual(response.location, 'http://example.com/admin')
+
+
+class AdminViewTests(unittest.TestCase):
+    def setUp(self):
+        self.session = _init_testing_db()
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        self.session.remove()
+        testing.tearDown()
+
+    @staticmethod
+    def _call_fut(request):
+        from .views import admin
+        return admin(request)
+
+    def test_it(self):
+        _register_routes(self.config)
+        request = testing.DummyRequest()
+        response = self._call_fut(request)
+        self.assertEqual(len(response['posts']), 1)
+        self.assertIsNotNone(response['users'])
+        self.assertIsNotNone(response['groups'])
